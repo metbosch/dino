@@ -6,7 +6,7 @@ using Dino.Entities;
 namespace Dino {
 
 public class Database : Qlite.Database {
-    private const int VERSION = 9;
+    private const int VERSION = 10;
 
     public class AccountTable : Table {
         public Column<int> id = new Column.Integer("id") { primary_key = true, auto_increment = true };
@@ -54,6 +54,7 @@ public class Database : Qlite.Database {
     public class MessageTable : Table {
         public Column<int> id = new Column.Integer("id") { primary_key = true, auto_increment = true };
         public Column<string> stanza_id = new Column.Text("stanza_id");
+        public Column<string> unique_id = new Column.Text("unique_id") { min_version=10 };
         public Column<int> account_id = new Column.Integer("account_id") { not_null = true };
         public Column<int> counterpart_id = new Column.Integer("counterpart_id") { not_null = true };
         public Column<string> counterpart_resource = new Column.Text("counterpart_resource");
@@ -68,7 +69,7 @@ public class Database : Qlite.Database {
 
         internal MessageTable(Database db) {
             base(db, "message");
-            init({id, stanza_id, account_id, counterpart_id, our_resource, counterpart_resource, direction,
+            init({id, stanza_id, unique_id, account_id, counterpart_id, our_resource, counterpart_resource, direction,
                 type_, time, local_time, body, encryption, marked});
             index("message_localtime_counterpart_idx", {local_time, counterpart_id});
             fts({body});

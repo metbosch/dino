@@ -92,6 +92,11 @@ public class MessageProcessor : StreamInteractionModule, Object {
         Entities.Message new_message = new Entities.Message(message.body);
         new_message.account = account;
         new_message.stanza_id = message.id;
+        if (message.type_ == Xmpp.MessageStanza.TYPE_GROUPCHAT) {
+            new_message.unique_id = Xep.UniqueStableStanzaIDs.get_stanza_id(message);
+        } else if (message.type_ == Xmpp.MessageStanza.TYPE_CHAT) {
+            new_message.unique_id = Xep.UniqueStableStanzaIDs.get_origin_id(message);
+        }
 
         Jid? counterpart_override = null;
         if (message.from.equals(stream_interactor.get_module(MucManager.IDENTITY).get_own_jid(message.from.bare_jid, account))) {
@@ -268,8 +273,9 @@ public class MessageProcessor : StreamInteractionModule, Object {
                 if (delayed) {
                     Xmpp.Xep.DelayedDelivery.Module.set_message_delay(new_message, message.time);
                 }
+                Xep.UniqueStableStanzaIDs.set_origin_id(new_message, message.stanza_id);
+
                 stream.get_module(Xmpp.MessageModule.IDENTITY).send_message(stream, new_message);
-                message.stanza_id = new_message.id;
             } else {
                 message.marked = Entities.Message.Marked.UNSENT;
             }
