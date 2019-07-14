@@ -66,7 +66,7 @@ public class MessageProcessor : StreamInteractionModule, Object {
             on_message_received.begin(account, message);
         });
         stream_interactor.module_manager.get_module(account, Xmpp.Xep.MessageArchiveManagement.Module.IDENTITY).feature_available.connect( (stream) => {
-            DateTime start_time = account.mam_earliest_synced.to_unix() > 60 ? account.mam_earliest_synced.add_minutes(-1) : account.mam_earliest_synced;
+            DateTime start_time = account.mam_earliest_synced.to_unix() > 60 ? account.mam_earliest_synced.add_minutes(-60) : account.mam_earliest_synced;
             stream.get_module(Xep.MessageArchiveManagement.Module.IDENTITY).query_archive(stream, null, start_time, null, () => {
                 history_synced(account);
             });
@@ -83,6 +83,12 @@ public class MessageProcessor : StreamInteractionModule, Object {
         }
         if (message.direction == Entities.Message.DIRECTION_RECEIVED) {
             message_received(message, conversation);
+//            if (message.unique_id != null && message.type_ == Message.Type.CHAT) {
+//                Gee.List<string> l = new ArrayList<string>();
+//                l.add("👋");
+//                l.add("🐢");
+//                stream_interactor.get_module(Reactions.IDENTITY).send_reactions(account, message, l);
+//            }
         } else if (message.direction == Entities.Message.DIRECTION_SENT) {
             message_sent(message, conversation);
         }
@@ -237,6 +243,7 @@ public class MessageProcessor : StreamInteractionModule, Object {
         Entities.Message message = new Entities.Message(text);
         message.type_ = Util.get_message_type_for_conversation(conversation);
         message.stanza_id = random_uuid();
+        message.unique_id = message.stanza_id;
         message.account = conversation.account;
         message.body = text;
         message.time = new DateTime.now_utc();

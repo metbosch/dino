@@ -7,7 +7,7 @@ using Dino.Entities;
 
 namespace Dino.Ui.ConversationSummary {
 
-public class ConversationItemSkeleton : EventBox {
+public class ConversationItemSkeleton : Overlay {
 
     private AvatarImage image = new AvatarImage() { margin_top=2, valign=Align.START, visible=true, allow_gray = false };
 
@@ -18,6 +18,7 @@ public class ConversationItemSkeleton : EventBox {
     public Conversation conversation { get; set; }
     public Plugins.MetaConversationItem item;
 
+    private EventBox event_box = new EventBox() { visible=true };
     private Box image_content_box = new Box(Orientation.HORIZONTAL, 8) { visible=true };
     private Box header_content_box = new Box(Orientation.VERTICAL, 0) { visible=true };
     private DefaultSkeletonHeader default_header;
@@ -52,22 +53,45 @@ public class ConversationItemSkeleton : EventBox {
         }
 
         image_content_box.add(header_content_box);
-        this.add(image_content_box);
+        event_box.add(image_content_box);
 
         if (item.get_type().is_a(typeof(ContentMetaItem))) {
-            this.motion_notify_event.connect((event) => {
+            event_box.motion_notify_event.connect((event) => {
                 this.set_state_flags(StateFlags.PRELIGHT, false);
                 return false;
             });
-            this.enter_notify_event.connect((event) => {
+            event_box.enter_notify_event.connect((event) => {
                 this.set_state_flags(StateFlags.PRELIGHT, false);
                 return false;
             });
-            this.leave_notify_event.connect((event) => {
+            event_box.leave_notify_event.connect((event) => {
                 this.unset_state_flags(StateFlags.PRELIGHT);
                 return false;
             });
         }
+
+        ContentMetaItem? content_meta_item = item as ContentMetaItem;
+        if (content_meta_item != null) {
+            MessageItem? message_item = content_meta_item.content_item as MessageItem;
+            if (message_item != null) {
+                Box action_box = new Box(Orientation.HORIZONTAL, 5) { valign=Align.START, halign=Align.END, visible=true};
+
+                MenuButton add_emoji_button = new MenuButton() { visible=true };
+                Image add_image = new Image.from_icon_name("dino-emoticon-add-symbolic", IconSize.SMALL_TOOLBAR) { visible=true };
+                add_emoji_button.add(add_image);
+
+                EmojiChooser chooser = new EmojiChooser();
+                chooser.emoji_picked.connect((emoji) => {
+                    stream_interactor.get_module(Reactions.IDENTITY).add_reaction(conversation.account, message_item.message, emoji);
+                });
+                add_emoji_button.set_popover(chooser);
+
+                action_box.add(add_emoji_button);
+                this.add_overlay(action_box);
+            }
+        }
+
+        this.add(event_box);
 
         this.notify["show-skeleton"].connect(update_margin);
         this.notify["last-group-item"].connect(update_margin);

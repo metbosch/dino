@@ -74,6 +74,7 @@ SOURCES
     "src/module/xep/0368_srv_records_tls.vala"
     "src/module/xep/0380_explicit_encryption.vala"
     "src/module/xep/pixbuf_storage.vala"
+    "src/module/xep/reactions.vala"
 PACKAGES
     ${ENGINE_PACKAGES}
 GENERATE_VAPI

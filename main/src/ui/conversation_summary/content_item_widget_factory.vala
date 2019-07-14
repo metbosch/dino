@@ -83,7 +83,12 @@ public class MessageItemWidgetGenerator : WidgetGenerator, Object {
         }
 
         label.label = markup_text;
-        return label;
+
+        Box box = new Box(Orientation.VERTICAL, 3) { visible=true };
+        box.add(label);
+        box.add(new ReactionsWidget(conversation.account, message, stream_interactor) { visible=true });
+
+        return box;
     }
 
     public static void update_me_style(StreamInteractor stream_interactor, Jid jid, string display_name, Account account, Label label, string action_text) {
@@ -238,6 +243,127 @@ public class FileItemWidgetGenerator : WidgetGenerator, Object {
         });
 
         return event_box;
+    }
+}
+
+public class ReactionsWidget : Box {
+
+    private Account account;
+    private Message message;
+    private StreamInteractor stream_interactor;
+
+    private HashMap<string, Label> reaction_counts = new HashMap<string, Label>();
+    private HashMap<string, Widget> reaction_widgets = new HashMap<string, Widget>();
+    private HashMap<string, Gee.List<Jid>> reactions = new HashMap<string, Gee.List<Jid>>();
+
+    private Box reactions_box = new Box(Orientation.HORIZONTAL, 5) { visible=true };
+    private bool initialized = false;
+
+    public ReactionsWidget(Account account, Message message, StreamInteractor stream_interactor) {
+        this.account = account;
+        this.message = message;
+        this.stream_interactor = stream_interactor;
+
+        this.add(reactions_box);
+
+        HashMap<string, Gee.List<Jid>> reactions = stream_interactor.get_module(Reactions.IDENTITY).get_message_reactions(account, message);
+        if (reactions.size > 0) {
+            initialize();
+        }
+        foreach (string reaction in reactions.keys) {
+            foreach (Jid jid in reactions[reaction]) {
+                reaction_added(reaction, jid);
+            }
+        }
+
+        stream_interactor.get_module(Reactions.IDENTITY).reaction_added.connect((account, message, jid, reaction) => {
+            if (account.equals(this.account) && message.equals(this.message)) {
+                reaction_added(reaction, jid);
+            }
+        });
+        stream_interactor.get_module(Reactions.IDENTITY).reaction_removed.connect((account, message, jid, reaction) => {
+            if (account.equals(this.account) && message.equals(this.message)) {
+                reaction_removed(reaction, jid);
+            }
+        });
+    }
+
+    public void initialize() {
+        MenuButton add_button = new MenuButton() { visible=true };
+        add_button.get_style_context().add_class("reaction-box");
+        Image add_image = new Image.from_icon_name("dino-emoticon-add-symbolic", IconSize.SMALL_TOOLBAR) { margin_left=5, margin_right=5, visible=true };
+        add_button.add(add_image);
+        reactions_box.pack_end(add_button);
+
+        EmojiChooser chooser = new EmojiChooser();
+        chooser.emoji_picked.connect((emoji) => {
+            stream_interactor.get_module(Reactions.IDENTITY).add_reaction(account, message, emoji);
+        });
+        add_button.set_popover(chooser);
+
+        initialized = true;
+    }
+
+    public void reaction_added(string reaction, Jid jid) {
+        if (!initialized) {
+            initialize();
+        }
+
+        if (reactions.contains(reaction)) {
+            reactions[reaction].add(jid);
+            reaction_counts[reaction].label = "<span size='small'>" + reactions[reaction].size.to_string() + "</span>";
+            if (jid.equals(account.bare_jid)) {
+                reaction_widgets[reaction].get_style_context().add_class("own-reaction");
+            }
+        } else {
+            reactions[reaction] = new ArrayList<Jid>(Jid.equals_func);
+            reactions[reaction].add(jid);
+
+            Label reaction_label = new Label("<span size='small'>" + reaction + "</span>") { use_markup=true, visible=true };
+            Label count_label = new Label("<span size='small'>" + reactions[reaction].size.to_string() + "</span>") { use_markup=true, visible=true };
+
+            Button button = new Button() { visible=true };
+            button.get_style_context().add_class("reaction-box");
+            Box reaction_box = new Box(Orientation.HORIZONTAL, 4) { visible=true };
+            if (jid.equals(account.bare_jid)) {
+                button.get_style_context().add_class("own-reaction");
+            }
+            reaction_box.add(reaction_label);
+            reaction_box.add(count_label);
+
+            button.add(reaction_box);
+            reactions_box.add(button);
+
+            button.clicked.connect(() => {
+                if (reactions[reaction].contains(account.bare_jid)) {
+                    stream_interactor.get_module(Reactions.IDENTITY).remove_reaction(account, message, reaction);
+                } else {
+                    stream_interactor.get_module(Reactions.IDENTITY).add_reaction(account, message, reaction);
+                }
+            });
+
+            reaction_counts[reaction] = count_label;
+            reaction_widgets[reaction] = button;
+        }
+
+        foreach (Jid a in reactions[reaction]) {
+            print(a.to_string() + " ");
+        }
+        print("\n");
+    }
+
+    public void reaction_removed(string reaction, Jid jid) {
+        if (!reactions.contains(reaction)) warning("wtf");
+
+        reactions[reaction].remove(jid);
+        if (reactions[reaction].size > 0) {
+            reaction_counts[reaction].label = "<span size='small'>" + reactions[reaction].size.to_string() + "</span>";
+            if (jid.equals(account.bare_jid)) {
+                reaction_widgets[reaction].get_style_context().remove_class("own-reaction");
+            }
+        } else {
+            reaction_widgets[reaction].destroy();
+        }
     }
 }
 

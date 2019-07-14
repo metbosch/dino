@@ -89,3 +89,24 @@ window.dino-main button.dino-chatinput-button:checked {
 window.dino-main button.dino-chatinput-button:checked:backdrop {
     color: alpha(@theme_unfocused_selected_bg_color, 0.8);
 }
+
+window.dino-main .reaction-box {
+    border: 1px solid transparent;
+    padding: 0 5px ;
+    border-radius: 7px;
+    background-color: alpha(@theme_fg_color, 0.05)
+}
+
+window.dino-main .reaction-box.own-reaction {
+    color: @theme_selected_bg_color;
+    border-color: @theme_selected_bg_color;
+    background-color: alpha(@theme_selected_bg_color, 0.1)
+}
+
+window.dino-main .reaction-box:hover {
+    background-color: alpha(@theme_fg_color, 0.1)
+}
+
+window.dino-main .own-reaction:hover {
+    background-color: alpha(@theme_selected_bg_color, 0.2)
+}

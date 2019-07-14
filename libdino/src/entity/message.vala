@@ -66,7 +66,7 @@ public class Message : Object {
         id = row[db.message.id];
         account = db.get_account_by_id(row[db.message.account_id]);
         stanza_id = row[db.message.stanza_id];
-        stanza_id = row[db.message.unique_id];
+        unique_id = row[db.message.unique_id];
         type_ = (Message.Type) row[db.message.type_];
 
         counterpart = Jid.parse(db.get_jid_by_id(row[db.message.counterpart_id]));

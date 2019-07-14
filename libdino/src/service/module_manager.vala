@@ -78,6 +78,7 @@ public class ModuleManager {
             module_map[account].add(new StreamError.Module());
             module_map[account].add(new Xep.InBandRegistration.Module());
             module_map[account].add(new Xep.HttpFileUpload.Module());
+            module_map[account].add(new Xep.Reactions.Module());
             initialize_account_modules(account, module_map[account]);
         }
     }

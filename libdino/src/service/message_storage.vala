@@ -101,10 +101,24 @@ public class MessageStorage : StreamInteractionModule, Object {
         return null;
     }
 
+    public Message? get_message_by_unique_id(Account account, string unique_id) {
+        foreach (Conversation conversation in messages.keys) {
+            if (!conversation.account.equals(account)) continue;
+            foreach (Message message in messages[conversation]) {
+                if (message.unique_id == unique_id) {
+                    print("found\n");
+                    return message;
+                }
+            }
+        }
+        return null;
+    }
+
     public Conversation? get_conversation_for_stanza_id(Account account, string stanza_id) {
         foreach (Conversation conversation in messages.keys) {
             if (!conversation.account.equals(account)) continue;
             foreach (Message message in messages[conversation]) {
+//                print(message.body + "\n");
                 if (message.stanza_id == stanza_id) return conversation;
             }
         }
