@@ -179,7 +179,7 @@ public class ConnectionManager : Object {
 
     private async void connect_async(Account account, XmppStream stream) {
         try {
-            yield stream.connect(account.domainpart);
+            yield stream.connect(account.servername);
         } catch (Error e) {
             debug("[%s %p] Error: %s", account.bare_jid.to_string(), stream, e.message);
             change_connection_state(account, ConnectionState.DISCONNECTED);

@@ -54,7 +54,7 @@ public class Register : StreamInteractionModule, Object{
         public TlsCertificateFlags? error_flags { get; set; }
     }
 
-    public static async ServerAvailabilityReturn check_server_availability(Jid jid) {
+    public static async ServerAvailabilityReturn check_server_availability(Jid jid, string servername, bool accept_untrusted) {
         XmppStream stream = new XmppStream();
         stream.add_module(new Tls.Module());
         stream.add_module(new Iq.Module());
@@ -69,14 +69,20 @@ public class Register : StreamInteractionModule, Object{
             }
         });
         stream.get_module(Tls.Module.IDENTITY).invalid_certificate.connect((peer_cert, errors) => {
-            if (callback != null) {
-
+            stderr.printf("registration.vala: ERROR invalid certificate\n");
+            if (accept_untrusted) {
+                debug("Ignoring invalid certificate for: %s", servername);
+                ret.available = true;
+            } else {
                 ret.error_flags = errors;
+            }
+            if (callback != null) {
                 Idle.add((owned)callback);
             }
         });
 
-        stream.connect.begin(jid.domainpart, (_, res) => {
+        stderr.printf("registration.vala: %s\n", servername);
+        stream.connect.begin(servername, (_, res) => {
             try {
                 stream.connect.end(res);
             } catch (Error e) {
@@ -95,7 +101,7 @@ public class Register : StreamInteractionModule, Object{
         return ret;
     }
 
-    public static async Xep.InBandRegistration.Form? get_registration_form(Jid jid) {
+    public static async Xep.InBandRegistration.Form? get_registration_form(Jid jid, string servername) {
         XmppStream stream = new XmppStream();
         stream.add_module(new Tls.Module());
         stream.add_module(new Iq.Module());
@@ -111,7 +117,7 @@ public class Register : StreamInteractionModule, Object{
             }
         });
 
-        stream.connect.begin(jid.domainpart, (_, res) => {
+        stream.connect.begin(servername, (_, res) => {
             try {
                 stream.connect.end(res);
             } catch (Error e) {

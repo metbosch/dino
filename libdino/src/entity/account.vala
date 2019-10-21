@@ -18,15 +18,17 @@ public class Account : Object {
     public bool enabled { get; set; default = false; }
     public string? roster_version { get; set; }
     public DateTime mam_earliest_synced { get; set; default=new DateTime.from_unix_utc(0); }
+    public string servername { get; set; }
 
     private Database? db;
 
-    public Account(Jid bare_jid, string? resourcepart, string? password, string? alias) {
+    public Account(Jid bare_jid, string? resourcepart, string? password, string? alias, string? servername) {
         this.id = -1;
         this.resourcepart = resourcepart ?? "dino." + Random.next_int().to_string("%x");
         this.bare_jid = bare_jid;
         this.password = password;
         this.alias = alias;
+        this.servername = servername;
     }
 
     public Account.from_row(Database db, Qlite.Row row) {
@@ -39,6 +41,7 @@ public class Account : Object {
         enabled = row[db.account.enabled];
         roster_version = row[db.account.roster_version];
         mam_earliest_synced = new DateTime.from_unix_utc(row[db.account.mam_earliest_synced]);
+        servername = row[db.account.servername];
 
         notify.connect(on_update);
     }
@@ -55,6 +58,7 @@ public class Account : Object {
                 .value(db.account.enabled, enabled)
                 .value(db.account.roster_version, roster_version)
                 .value(db.account.mam_earliest_synced, (long)mam_earliest_synced.to_unix())
+                .value(db.account.servername, servername)
                 .perform();
 
         notify.connect(on_update);
@@ -96,6 +100,8 @@ public class Account : Object {
                 update.set(db.account.roster_version, roster_version); break;
             case "mam-earliest-synced":
                 update.set(db.account.mam_earliest_synced, (long)mam_earliest_synced.to_unix()); break;
+            case "servername":
+                update.set(db.account.servername, servername); break;
         }
         update.perform();
     }

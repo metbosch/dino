@@ -21,6 +21,7 @@ public class AddAccountDialog : Gtk.Dialog {
     [GtkChild] private Box sign_in_jid_box;
     [GtkChild] private Label sign_in_jid_error_label;
     [GtkChild] private Entry jid_entry;
+    [GtkChild] private Entry servername_entry;
     [GtkChild] private Stack sign_in_jid_continue_stack;
     [GtkChild] private Button sign_in_jid_continue_button;
     [GtkChild] private Button sign_in_jid_serverlist_button;
@@ -216,14 +217,15 @@ public class AddAccountDialog : Gtk.Dialog {
 
     private async void on_sign_in_jid_continue_button_clicked() {
         Jid jid = new Jid(jid_entry.get_text());
+        string servername = servername_entry.get_text();
         sign_in_jid_continue_stack.visible_child_name = "spinner";
-        Register.ServerAvailabilityReturn server_status = yield Register.check_server_availability(jid);
+        Register.ServerAvailabilityReturn server_status = yield Register.check_server_availability(jid, servername, false);
         sign_in_jid_continue_stack.visible_child_name = "label";
         if (server_status.available) {
             show_sign_in_password();
         } else {
             if (server_status.error_flags != null) {
-                string error_desc = "The server could not prove that it is %s.".printf("<b>" + jid.domainpart + "</b>");
+                string error_desc = "The server could not prove that it is %s.".printf("<b>" + servername + "</b>");
                 if (TlsCertificateFlags.UNKNOWN_CA in server_status.error_flags) {
                     error_desc += " " + "Its security certificate is not trusted by your computer's operating system.";
                 } else if (TlsCertificateFlags.BAD_IDENTITY in server_status.error_flags) {
@@ -236,7 +238,7 @@ public class AddAccountDialog : Gtk.Dialog {
                 sign_in_tls_label.label = error_desc;
                 show_tls_error();
             } else {
-                sign_in_jid_error_label.label = _("Could not connect to %s").printf(jid.domainpart);
+                sign_in_jid_error_label.label = _("Could not connect to %s").printf(servername);
             }
         }
     }
@@ -244,7 +246,8 @@ public class AddAccountDialog : Gtk.Dialog {
     private async void on_sign_in_password_continue_button_clicked() {
         Jid jid = new Jid(jid_entry.get_text());
         string password = password_entry.get_text();
-        Account account = new Account(jid, null, password, null);
+        string servername = servername_entry.get_text();
+        Account account = new Account(jid, null, password, null, servername);
 
         sign_in_password_continue_stack.visible_child_name = "spinner";
         ConnectionManager.ConnectionError.Source? error = yield stream_interactor.get_module(Register.IDENTITY).add_check_account(account);
@@ -277,7 +280,7 @@ public class AddAccountDialog : Gtk.Dialog {
 
     private async void request_show_register_form() {
         select_server_continue_stack.visible_child_name = "spinner";
-        form = yield Register.get_registration_form(server_jid);
+        form = yield Register.get_registration_form(server_jid, server_jid.domainpart);
         if (select_server_continue_stack == null) {
             return;
         }
@@ -345,7 +348,7 @@ public class AddAccountDialog : Gtk.Dialog {
                     case "password": password = field.get_value_string(); break;
                 }
             }
-            Account account = new Account(new Jid.components(username, server_jid.domainpart, null), null, password, null);
+            Account account = new Account(new Jid.components(username, server_jid.domainpart, null), null, password, null, server_jid.domainpart);
             add_activate_account(account);
             show_success();
         } else {
